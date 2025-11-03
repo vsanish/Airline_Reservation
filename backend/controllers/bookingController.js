@@ -16,13 +16,13 @@ const addBooking = async (req, res) => {
       paymentMethod,
     } = req.body;
 
-    // 1️⃣ Find the flight
+    // Find the flight
     const flight = await Flight.findById(flightId);
     if (!flight) {
       return res.status(404).json({ success: false, message: "Flight not found" });
     }
 
-    // 2️⃣ Validate seat count
+    // Validate seat count
     if (seatsBooked > 5) {
       return res.status(400).json({
         success: false,
@@ -38,7 +38,7 @@ const addBooking = async (req, res) => {
       });
     }
 
-    // 4️⃣ Prevent duplicate seat numbers in user input
+    // Prevent duplicate seat numbers in user input
     const uniqueSeatNumbers = [...new Set(seatNumbers)];
     if (uniqueSeatNumbers.length !== seatNumbers.length) {
       return res.status(400).json({
@@ -47,7 +47,7 @@ const addBooking = async (req, res) => {
       });
     }
 
-    // 5️⃣ Check if seat numbers are already taken
+    // Check if seat numbers are already taken
     const bookedSeatNumbers = flight.bookedSeats || [];
     const alreadyTaken = uniqueSeatNumbers.filter((s) => bookedSeatNumbers.includes(s));
 
@@ -58,7 +58,7 @@ const addBooking = async (req, res) => {
       });
     }
 
-    // 6️⃣ Auto-allocate if no seat numbers provided
+    // Auto-allocate if no seat numbers provided
     let finalSeatNumbers = [...uniqueSeatNumbers];
     if (finalSeatNumbers.length === 0) {
       const prefix = seatClass === "economy" ? "E" : seatClass === "business" ? "B" : "F";
@@ -78,17 +78,17 @@ const addBooking = async (req, res) => {
       finalSeatNumbers = availableSeats.slice(0, seatsBooked);
     }
 
-    // 7️⃣ Update seat availability and bookedSeats
+    // Update seat availability and bookedSeats
     flight.seats[seatClass].available -= seatsBooked;
     flight.bookedSeats.push(...finalSeatNumbers);
     await flight.save();
 
-    // 8️⃣ Calculate total fare
+    // Calculate total fare
     const seatFare = flight.fare[seatClass] * seatsBooked;
     const foodTotal = (foodOptions || []).reduce((sum, item) => sum + (item.price || 0), 0);
     const totalAmount = seatFare + foodTotal;
 
-    // 9️⃣ Create booking record
+    // Create booking record
     const booking = new Booking({
       flightId,
       userId,
@@ -122,7 +122,7 @@ const addBooking = async (req, res) => {
   }
 };
 
-// ✈️ Cancel Booking
+//  Cancel Booking
 const cancelBooking = async (req, res) => {
   try {
     const { bookingId, userId } = req.body;
