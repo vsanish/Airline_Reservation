@@ -1,5 +1,5 @@
 import express from 'express'
-import {  addBooking, cancelBooking, getBookingByUser,getAllBookings } from '../controllers/bookingController.js'
+import {  addBooking, cancelBooking, getBookingByUser,getAllBookings, deleteBookings } from '../controllers/bookingController.js'
 // import {createBooking, getAllBookings} from '../controllers/bookingController.js'
 import authUser from '../middlewares/authUser.js'
 const bookingRouter = express.Router()
@@ -17,6 +17,7 @@ bookingRouter.post('/add',addBooking);
 bookingRouter.put('/cancel',cancelBooking)
 bookingRouter.get("/all", getAllBookings);
 bookingRouter.get("/user/:userId", getBookingByUser);
+bookingRouter.delete('/delete/:id',deleteBookings);
 
 
 export default bookingRouter;

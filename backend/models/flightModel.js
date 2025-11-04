@@ -46,26 +46,26 @@ const flightSchema = new mongoose.Schema({
   },
 
   //  Seat details by class
-  // seats: {
-  //   economy: {
-  //     total: { type: Number, required: true },
-  //     available: { type: Number, required: true },
-  //   },
-  //   business: {
-  //     total: { type: Number, required: true },
-  //     available: { type: Number, required: true },
-  //   },
-  //   firstClass: {
-  //     total: { type: Number, required: true },
-  //     available: { type: Number, required: true },
-  //   },
-  // },
-
   seats: {
-  economy: { available: Number, total: Number },
-  business: { available: Number, total: Number },
-  firstClass: { available: Number, total: Number },
+    economy: {
+      total: { type: Number, required: true },
+      available: { type: Number, required: true },
+    },
+    business: {
+      total: { type: Number, required: true },
+      available: { type: Number, required: true },
+    },
+    firstClass: {
+      total: { type: Number, required: true },
+      available: { type: Number, required: true },
+    },
   },
+
+  // seats: {
+  // economy: { available: Number, total: Number },
+  // business: { available: Number, total: Number },
+  // firstClass: { available: Number, total: Number },
+  // },
 
   
   bookedSeats: [String],

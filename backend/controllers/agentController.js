@@ -2,7 +2,7 @@ import Agent from "../models/agentModel.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
-// 🔹 Register Agent
+// Register Agent
 const registerAgent = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -30,7 +30,7 @@ const registerAgent = async (req, res) => {
   }
 };
 
-// 🔹 Login Agent
+// Login Agent
 const loginAgent = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -60,7 +60,7 @@ const loginAgent = async (req, res) => {
   }
 };
 
-// 🔹 Get all agents (admin use)
+// Get all agents (admin use)
 const getAllAgents = async (req, res) => {
   try {
     const agents = await Agent.find().sort({ dateJoined: -1 });
