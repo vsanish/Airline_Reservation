@@ -1,7 +1,7 @@
 import Booking from "../models/bookingModel.js";
 import Flight from "../models/flightModel.js";
 import crypto from "crypto";
-import Agent from "../models/agentModel.js";
+// import Agent from "../models/agentModel.js";
 
 
 const addBooking = async (req, res) => {
@@ -9,7 +9,6 @@ const addBooking = async (req, res) => {
     const {
       flightId,
       userId,
-      agentId,
       passengerName,
       seatsBooked,
       seatNumbers = [],
@@ -24,8 +23,22 @@ const addBooking = async (req, res) => {
       return res.status(404).json({ success: false, message: "Flight not found" });
     }
 
+    if (!flight.seats || !flight.seats[seatClass]) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Seat class '${seatClass}' is invalid or missing.` 
+      });
+    }
+
+    if (flight.seats[seatClass].available <= 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `No seats available in ${seatClass} class.` 
+      });
+    }
+
     // Validate seat count
-    if (!agentId && seatsBooked > 5) {
+    if (seatsBooked > 5) {
       return res.status(400).json({
         success: false,
         message: "You can book a maximum of 5 seats per booking.",
@@ -60,6 +73,19 @@ const addBooking = async (req, res) => {
       });
     }
 
+
+    const userBookings = await Booking.find({ flightId, userId, status: { $ne: "Cancelled" } });
+
+const totalSeatsAlreadyBooked = userBookings.reduce((sum, b) => sum + b.seatsBooked, 0);
+
+if (totalSeatsAlreadyBooked + seatsBooked > 5) {
+  return res.status(400).json({
+    success: false,
+    message: `Booking limit exceeded — You can book a maximum of 5 seats per flight. You already booked ${totalSeatsAlreadyBooked}.`,
+  });
+}
+
+
     // Auto-allocate if no seat numbers provided
     let finalSeatNumbers = [...uniqueSeatNumbers];
     if (finalSeatNumbers.length === 0) {
@@ -80,10 +106,25 @@ const addBooking = async (req, res) => {
       finalSeatNumbers = availableSeats.slice(0, seatsBooked);
     }
 
-    // Update seat availability and bookedSeats
-    flight.seats[seatClass].available -= seatsBooked;
-    flight.bookedSeats.push(...finalSeatNumbers);
-    await flight.save();
+    const updatedFlight = await Flight.findOneAndUpdate(
+  {
+    _id: flightId,
+    // Ensure none of these seats are already booked
+    bookedSeats: { $nin: finalSeatNumbers },
+  },
+  {
+    $inc: { [`seats.${seatClass}.available`]: -seatsBooked },
+    $addToSet: { bookedSeats: { $each: finalSeatNumbers } },
+  },
+  { new: true }
+);
+
+if (!updatedFlight) {
+  return res.status(400).json({
+    success: false,
+    message: "One or more selected seats are already booked. Please choose different seats.",
+  });
+}
 
     // Calculate total fare
     const seatFare = flight.fare[seatClass] * seatsBooked;
@@ -121,28 +162,11 @@ const addBooking = async (req, res) => {
       status: "Booked",
     });
 
-
-    
-    let bookingData = req.body;
-
-    if (bookingData.agentId) {
-      const agent = await Agent.findById(agentId);
-      if (agent) {
-        const commission = 100; 
-        agent.totalCommission += commission;
-        await agent.save();
-
-        totalAmount += commission;
-      }
-    }
-
     await booking.save();
 
     res.status(201).json({
       success: true,
-      message: agentId
-        ? "Booking successful via agent (₹100 commission applied)."
-        : "Booking successful!",
+      message: "Booking successful!",
       data: booking,
     });
   } catch (error) {
@@ -157,7 +181,7 @@ const addBooking = async (req, res) => {
 //  Cancel Booking
 const cancelBooking = async (req, res) => {
   try {
-    const { bookingId, userId, agentId} = req.body;
+    const { bookingId, userId} = req.body;
 
     const booking = await Booking.findById(bookingId);
     if (!booking) return res.json({ success: false, message: "Booking not found" });
@@ -182,19 +206,11 @@ const cancelBooking = async (req, res) => {
     booking.status = "Cancelled";
     await booking.save();
 
-    if (agentId) {
-      const agent = await Agent.findById(agentId);
-      if (agent && agent.totalCommission >= 100) {
-        agent.totalCommission -= 100;
-        await agent.save();
-      }
-    }
+    
 
     res.json({
       success: true,
-      message: agentId
-        ? "Agent booking cancelled — commission adjusted."
-        : "Booking cancelled and seats restored.",
+      message: "Booking cancelled and seats restored.",
       data: booking,
     }); 
   } catch (error) {
@@ -296,4 +312,15 @@ const getAllBookings = async (req, res) => {
   }
 };
 
-export { addBooking, cancelBooking, simulatePayment, getBookingByUser, getAllBookings};
+const deleteBookings = async (req, res) => {
+
+    try {
+        const { id } = req.params;
+        await Booking.findByIdAndDelete(id);
+        res.status(200).json({ success: true, message: "Booking deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Failed to delete Booking", error:error.message });
+    }
+}
+
+export { addBooking, cancelBooking, simulatePayment, getBookingByUser, getAllBookings, deleteBookings};
